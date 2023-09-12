@@ -3,7 +3,6 @@ package tlconverter
 import (
 	"context"
 	"net"
-	"sync"
 )
 
 type Protocol interface {
@@ -13,7 +12,6 @@ type Protocol interface {
 }
 
 type Converter struct {
-	sync.Once
 	source Protocol
 	target Protocol
 }
