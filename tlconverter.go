@@ -45,7 +45,7 @@ func (c *Converter) Convert() (err error) {
 
 func protocol(network string, address string) Protocol {
 	switch network {
-	case "udp":
+	case "udp", "udp4", "udp6":
 		addr, _ := net.ResolveUDPAddr(network, address)
 
 		return &Udp{addr}
