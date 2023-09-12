@@ -28,7 +28,8 @@ func new(source Protocol, target Protocol) *Converter {
 func New(sourceProtocol string, targetProtocol string, sourceAddress string, targetAddress string) *Converter {
 	return new(
 		protocol(sourceProtocol, sourceAddress),
-		protocol(targetProtocol, targetAddress))
+		protocol(targetProtocol, targetAddress),
+	)
 }
 
 func (c *Converter) Convert() (err error) {
@@ -45,8 +46,12 @@ func (c *Converter) Convert() (err error) {
 func protocol(network string, address string) Protocol {
 	switch network {
 	case "udp":
-		return &Udp{}
+		addr, _ := net.ResolveUDPAddr(network, address)
+
+		return &Udp{addr}
 	default:
-		return &Tcp{}
+		addr, _ := net.ResolveTCPAddr(network, address)
+
+		return &Tcp{addr}
 	}
 }
