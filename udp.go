@@ -9,7 +9,7 @@ type Udp struct {
 	source net.Addr
 }
 
-func (u *Udp) Forward(ctx context.Context, addr net.Addr, pc chan<- []byte) (err error) {
+func (u *Udp) Forward(ctx context.Context, addr net.Addr, pc chan []byte) (err error) {
 	udpAddr, ok := addr.(*net.UDPAddr)
 	if !ok {
 		udpAddr, err = net.ResolveUDPAddr(addr.Network(), addr.String())
@@ -22,6 +22,8 @@ func (u *Udp) Forward(ctx context.Context, addr net.Addr, pc chan<- []byte) (err
 	if err != nil {
 		return
 	}
+
+	defer conn.Close()
 
 	go func() {
 		defer close(pc)
@@ -36,8 +38,27 @@ func (u *Udp) Forward(ctx context.Context, addr net.Addr, pc chan<- []byte) (err
 	return nil
 }
 
-func (u *Udp) Packets() chan<- []byte {
-	return nil
+func (u *Udp) Packets() (error, chan []byte) {
+	udpServer, err := net.ListenPacket(u.source.Network(), u.source.String())
+	if err != nil {
+		return err, nil
+	}
+	defer udpServer.Close()
+
+	var p chan []byte
+	go func() {
+		for {
+			buf := make([]byte, 1024)
+			n, _, err := udpServer.ReadFrom(buf)
+			if n == 0 || err != nil {
+				continue
+			}
+			p <- buf
+		}
+	}()
+
+	return nil, p
+
 }
 
 func (u *Udp) Network() net.Addr {

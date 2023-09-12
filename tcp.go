@@ -9,7 +9,7 @@ type Tcp struct {
 	source net.Addr
 }
 
-func (t *Tcp) Forward(ctx context.Context, addr net.Addr, pc chan<- []byte) (err error) {
+func (t *Tcp) Forward(ctx context.Context, addr net.Addr, pc chan []byte) (err error) {
 	tcpAddr, ok := addr.(*net.TCPAddr)
 	if !ok {
 		tcpAddr, err = net.ResolveTCPAddr(addr.Network(), addr.String())
@@ -22,6 +22,8 @@ func (t *Tcp) Forward(ctx context.Context, addr net.Addr, pc chan<- []byte) (err
 	if err != nil {
 		return
 	}
+
+	defer conn.Close()
 
 	go func() {
 		defer close(pc)
@@ -36,8 +38,26 @@ func (t *Tcp) Forward(ctx context.Context, addr net.Addr, pc chan<- []byte) (err
 	return nil
 }
 
-func (t *Tcp) Packets() chan<- []byte {
-	return nil
+func (t *Tcp) Packets() (error, chan []byte) {
+	tcpServer, err := net.ListenPacket(t.source.Network(), t.source.String())
+	if err != nil {
+		return err, nil
+	}
+	defer tcpServer.Close()
+
+	var p chan []byte
+	go func() {
+		for {
+			buf := make([]byte, 1024)
+			n, _, err := tcpServer.ReadFrom(buf)
+			if n == 0 || err != nil {
+				continue
+			}
+			p <- buf
+		}
+	}()
+
+	return nil, p
 }
 
 func (t *Tcp) Network() net.Addr {

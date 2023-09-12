@@ -6,8 +6,8 @@ import (
 )
 
 type Protocol interface {
-	Forward(ctx context.Context, addr net.Addr, pc chan<- []byte) error
-	Packets() chan<- []byte
+	Forward(ctx context.Context, addr net.Addr, pc chan []byte) error
+	Packets() (error, chan []byte)
 	Network() net.Addr
 }
 
@@ -32,7 +32,9 @@ func New(sourceProtocol string, targetProtocol string, sourceAddress string, tar
 
 func (c *Converter) Convert() (err error) {
 	go func() {
-		err = c.source.Forward(context.Background(), c.target.Network(), c.source.Packets())
+		err, pc := c.source.Packets()
+
+		err = c.source.Forward(context.Background(), c.target.Network(), pc)
 		if err != nil {
 			return
 		}
